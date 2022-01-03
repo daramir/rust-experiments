@@ -1,0 +1,30 @@
+# Name this file Default.toml
+#replace "some_address" key with "game" and a valid H160 Address as value
+
+[server]
+port = "8080"
+url = "http://localhost:8080"
+
+[avalanche.node_rpc]
+wss = "wss://..."
+
+# TODO: Next 2 are non-hierarchical. Need to fix.
+[external_contracts.addresses]
+some_address = "0x0"
+
+[eth_logs.event_signature_hashes]
+some_event = "0x0"
+
+[log]
+level = "info"
+
+[[rules]]
+    name = "all"
+    rule_set = [
+        ">5",
+        "<100",
+    ]
+
+[[rules]]
+    name = "none"
+    rule_set = []
