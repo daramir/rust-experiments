@@ -1,0 +1,13 @@
+# Rust
+data
+target
+**/*.rs.bk
+files 
+*.db
+
+# Node
+node_modules
+npm-debug.log
+
+# other
+.gitignore
