@@ -12,4 +12,5 @@ hyper-reverse-proxy = { git = "https://github.com/daramir/hyper-reverse-proxy", 
 hyper = { version = "^0.14" }
 hyper-rustls = { version = "^0.22" }
 # tokio = { version = "0.2", features = ["full"] }
+lazy_static = "1.4"
 tokio = { version = "1.5", features = ["macros", "rt-multi-thread"] }
