@@ -4,6 +4,7 @@ target
 **/*.rs.bk
 files 
 *.db
+.vscode
 
 # Node
 node_modules
