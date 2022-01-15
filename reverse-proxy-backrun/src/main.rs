@@ -3,8 +3,15 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Request, Response, Server, StatusCode};
 use std::convert::Infallible;
 use std::net::{SocketAddr, IpAddr};
+#[macro_use]
+extern crate lazy_static;
 
-// type BoxFut = Box<dyn Future<Item = Response<Body>, Error = hyper::Error, Output = Type> + Send>;
+mod settings;
+
+lazy_static! {
+    static ref CONFIG: settings::Settings =
+        settings::Settings::new().expect("config can't be loaded");
+}
 
 fn debug_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let body_str = format!("{:?}", req);
