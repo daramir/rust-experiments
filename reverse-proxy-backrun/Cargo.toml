@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+config = "0.10"
+ethers = { git = "https://github.com/gakonst/ethers-rs", features = [
 hyper-reverse-proxy = { git = "https://github.com/daramir/hyper-reverse-proxy", branch = "daramir-mod" }
 hyper = { version = "^0.14" }
 hyper-rustls = { version = "^0.22" }
