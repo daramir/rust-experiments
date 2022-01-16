@@ -1,0 +1,28 @@
+# Name this file Default.toml
+
+[avalanche.mainnet_node_rpc]
+wss = "wss://..."
+https = "https://..."
+chain_id = 43114
+# https = "https://httpbin.org"
+
+
+# TODO: Next 2 are non-hierarchical. Need to fix.
+[external_contracts.addresses]
+some_address = "0x0"
+
+[eth_logs.event_signature_hashes]
+some_event = "0x0"
+
+[log]
+level = "info"
+
+[[wallys]]
+    name = "bababa-0"
+    path = "./wallys/bababa-0.json"
+    password = "..."
+
+[[wallys]]
+    name = "nonexistent"
+    path = "./nonexistent.json"
+    password = "abcd"
