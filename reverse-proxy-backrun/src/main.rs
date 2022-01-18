@@ -14,8 +14,13 @@ mod backrun;
 mod settings;
 
 lazy_static! {
-    static ref CONFIG: settings::Settings =
-        settings::Settings::new().expect("config can't be loaded");
+    static ref CONFIG: settings_mod::settings::Settings =
+    settings_mod::settings::Settings::new().expect("config can't be loaded");
+}
+
+pub mod settings_mod {
+    pub mod settings;
+    // mod utils; // because it's not `pub` it won't be visible outside of `settings_mod`
 }
 
 fn debug_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
@@ -41,7 +46,7 @@ struct StateCounters {
 
 impl AppContext {
     pub fn new(
-        config: settings::Settings,
+        config: settings_mod::settings::Settings,
         https_rpc_url: String,
         wallet_path: &Path,
         password: String,
