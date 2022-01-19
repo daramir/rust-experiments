@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "^1.0.39"
 config = "0.10"
 ethers = { git = "https://github.com/gakonst/ethers-rs", features = [
+    "ws",
     "ipc",
     "rustls",
     "legacy"

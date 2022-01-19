@@ -5,17 +5,19 @@ use hyper::{Body, Error, Request, Response, Server, StatusCode};
 use std::convert::Infallible;
 use std::net::IpAddr;
 use std::path::Path;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+// use std::sync::{Arc, RwLock};
+use tokio::sync::*;
 
 #[macro_use]
 extern crate lazy_static;
 
 mod backrun;
-mod settings;
+mod subscriber;
 
 lazy_static! {
     static ref CONFIG: settings_mod::settings::Settings =
-    settings_mod::settings::Settings::new().expect("config can't be loaded");
+        settings_mod::settings::Settings::new().expect("config can't be loaded");
 }
 
 pub mod settings_mod {
@@ -40,8 +42,8 @@ struct AppContext {
 }
 
 #[derive(Debug)]
-struct StateCounters {
-    last_mine_id: u32,
+pub struct LatestEventCounter {
+    latest_event_id: u32,
 }
 
 impl AppContext {
@@ -78,21 +80,32 @@ async fn handle(
     client_ip: IpAddr,
     req: Request<Body>,
     context: AppContext,
-    state_counters: Arc<RwLock<StateCounters>>
+    latest_event_counter: Arc<RwLock<LatestEventCounter>>,
 ) -> Result<Response<Body>, Infallible> {
     if req.uri().path().starts_with("/rpb-inspect-request") {
-        let _test_op_frontrun = match backrun::backrun_mine(
-            context.provider_url.clone(),
+        // let _test_op_frontrun = match backrun::backrun_call(
+        //     context.provider_url.clone(),
+        //     context.chain_id,
+        //     context.signer,
+        // )
+        // .await
+        // {
+        //     Ok(_) => println!("Backrun successful"),
+        //     Err(e) => eprintln!("Error backrunning {}", e),
+        // };
+        // let latest_event_id: &LatestEventCounter = &latest_event_counter.read().unwrap();
+        let latest_event_id: &u32 = &latest_event_counter.read().await.latest_event_id;
+        println!("{:?}", latest_event_id);
+        let _backrun_op = match backrun::backrun_call(
+            context.provider_url,
             context.chain_id,
             context.signer,
-        )
-        .await
+            latest_event_id,
+        ).await
         {
             Ok(_) => println!("Backrun successful"),
             Err(e) => eprintln!("Error backrunning {}", e),
         };
-        let current_counter: &StateCounters = &state_counters.read().unwrap();
-        println!("{:?}", current_counter);
         debug_request(req)
     } else if req.uri().path().starts_with("/avalanche/c/rpc") {
         // will forward requests to port moralis speedy node HTTP RPC
@@ -111,7 +124,10 @@ async fn handle(
                 .unwrap()),
         };
         let _backrun_op =
-            backrun::backrun_mine(context.provider_url, context.chain_id, context.signer);
+            backrun::backrun_call(context.provider_url, context.chain_id, 
+                context.signer, 
+                &1234_u32
+            );
 
         return proxy_op;
     } else {
@@ -131,7 +147,7 @@ async fn handle(
                 .body(Body::empty())
                 .unwrap()),
         };
-        state_counters.write().unwrap().last_mine_id += 1;
+        // state_counters.write().unwrap().latest_event_id += 1;
         return proxy_op;
     }
 }
@@ -165,11 +181,18 @@ async fn main() {
     //     // provider: todo!(),
     //     // ...
     // };
-    let main_last_mine_id: Arc<RwLock<StateCounters>> =
-        Arc::new(RwLock::new(StateCounters { last_mine_id: 0 }));
+    let main_latest_event_id: Arc<RwLock<LatestEventCounter>> =
+        Arc::new(RwLock::new(LatestEventCounter { latest_event_id: 0 }));
 
     // This is our socket address...
     let addr = ([0, 0, 0, 0], 13900).into();
+
+    let task_latest_event_id = Arc::clone(&main_latest_event_id);
+    tokio::spawn(async move {
+        // process(socket).await;
+        let listener = subscriber::start_event_listener(CONFIG.clone(), task_latest_event_id);
+        listener.await.unwrap()
+    });
 
     println!("Making service...");
     // A `Service` is needed for every connection.
@@ -180,7 +203,8 @@ async fn main() {
         // an `std::sync::Arc`.
         let context = context.clone();
 
-        let svc_last_mine_id = Arc::clone(&main_last_mine_id);
+        // let svc_last_block_id = Arc::clone(&main_last_block_id);
+        let svc_latest_event_id = Arc::clone(&main_latest_event_id);
 
         // You can grab the address of the incoming connection like so.
         let remote_addr = conn.remote_addr();
@@ -189,11 +213,16 @@ async fn main() {
         // let service = service_fn(move |req| {
         //     handle(context.clone(), addr, req)
         // });
-        let service =
-            service_fn(move |req: Request<Body>| {
-                let svc_last_mine_id = Arc::clone(&svc_last_mine_id);
-                handle(remote_addr.ip(), req, context.clone(), svc_last_mine_id)
-            });
+        let service = service_fn(move |req: Request<Body>| {
+            // let svc_last_block_id = Arc::clone(&svc_last_block_id);
+            let svc_latest_event_id = Arc::clone(&svc_latest_event_id);
+            handle(
+                remote_addr.ip(),
+                req,
+                context.clone(),
+                svc_latest_event_id,
+            )
+        });
 
         // Return the service to hyper.
         async move { Ok::<_, Error>(service) }
